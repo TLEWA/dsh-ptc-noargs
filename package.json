@@ -5,21 +5,56 @@
   "author": "TLEWA",
   "type": "module",
   "main": "./lib/index.js",
-  "exports": { ".": "./lib/index.js", "./package.json": "./package.json" },
-  "files": ["lib", "test", "cordis.patch.yml", "README.md", "README.en.md"],
-  "keywords": ["deepseek", "deepseek-harness", "dsh", "dsh-plugin", "ptc", "run_code", "noargs"],
+  "exports": {
+    ".": "./lib/index.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib",
+    "cordis.patch.yml",
+    "README.md",
+    "README.en.md",
+    "CHANGELOG.md",
+    "CHANGELOG.en.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "deepseek",
+    "deepseek-harness",
+    "dsh",
+    "dsh-plugin",
+    "ptc",
+    "run_code",
+    "noargs"
+  ],
   "license": "MIT",
-  "repository": { "type": "git", "url": "git+https://github.com/TLEWA/dsh-ptc-noargs.git" },
-  "bugs": { "url": "https://github.com/TLEWA/dsh-ptc-noargs/issues" },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/TLEWA/dsh-ptc-noargs.git"
+  },
+  "bugs": {
+    "url": "https://github.com/TLEWA/dsh-ptc-noargs/issues"
+  },
   "homepage": "https://github.com/TLEWA/dsh-ptc-noargs#readme",
-  "peerDependencies": { "@deepseek-ai/cordis": ">=4.0.0-rc <5" },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": ">=4.0.0-rc <5"
+  },
+  "engines": {
+    "node": ">=20",
+    "dsh": ">=0.2.2-rc.1"
+  },
   "dsh": {
     "manifestVersion": 1,
-    "engines": { "dsh": ">=0.2.2-rc.1" },
-    "bundle": { "patch": "./cordis.patch.yml" }
+    "engines": {
+      "dsh": ">=0.2.2-rc.1"
+    },
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
   },
   "scripts": {
     "check": "node --check lib/index.js && node --check lib/prelude.js && node --check test/prelude.test.mjs",
-    "test": "node test/prelude.test.mjs"
+    "test": "node test/prelude.test.mjs",
+    "prepublishOnly": "npx --yes --package=github:TLEWA/dsh-plugin-ci#v1 dsh-ci-gate --prepublish"
   }
 }
