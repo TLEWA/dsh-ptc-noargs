@@ -1,0 +1,25 @@
+{
+  "name": "dsh-ptc-noargs",
+  "version": "0.1.0",
+  "description": "Fix PTC run_code binding failures for no-argument tool calls: normalize an omitted/undefined first argument to {}. 修复 run_code 中 tools.foo() / tools.foo(undefined) 因缺少 arguments 对象而报 binding arguments must be lossless JSON 的问题。",
+  "author": "TLEWA",
+  "type": "module",
+  "main": "./lib/index.js",
+  "exports": { ".": "./lib/index.js", "./package.json": "./package.json" },
+  "files": ["lib", "test", "cordis.patch.yml", "README.md", "README.en.md"],
+  "keywords": ["deepseek", "deepseek-harness", "dsh", "dsh-plugin", "ptc", "run_code", "noargs"],
+  "license": "MIT",
+  "repository": { "type": "git", "url": "git+https://github.com/TLEWA/dsh-ptc-noargs.git" },
+  "bugs": { "url": "https://github.com/TLEWA/dsh-ptc-noargs/issues" },
+  "homepage": "https://github.com/TLEWA/dsh-ptc-noargs#readme",
+  "peerDependencies": { "@deepseek-ai/cordis": ">=4.0.0-rc <5" },
+  "dsh": {
+    "manifestVersion": 1,
+    "engines": { "dsh": ">=0.2.2-rc.1" },
+    "bundle": { "patch": "./cordis.patch.yml" }
+  },
+  "scripts": {
+    "check": "node --check lib/index.js && node --check lib/prelude.js && node --check test/prelude.test.mjs",
+    "test": "node test/prelude.test.mjs"
+  }
+}

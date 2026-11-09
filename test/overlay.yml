@@ -1,0 +1,4 @@
+# Temporary integration overlay: mount the local plugin without touching a profile.
+- insert:
+    - id: ptc-noargs-overlay
+      name: ../lib/index.js

@@ -1,0 +1,10 @@
+# dsh-ptc-noargs bundle patch
+#
+# Install into a profile with:
+#
+#   dsh plugin --profile <name> add dsh-ptc-noargs
+#
+# The profile boot composes this patch and mounts the host row below.
+- insert:
+    - id: ptc-noargs
+      name: 'dsh-ptc-noargs'
