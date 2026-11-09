@@ -1,6 +1,6 @@
 # dsh-ptc-noargs
 
-English | [中文](./README.md)
+[简体中文](README.md) · [English](README.en.md)
 
 A minimal Cordis plugin that fixes no-argument tool calls in DSH PTC `run_code`.
 
@@ -99,6 +99,18 @@ A live end-to-end comparison was also run in the desktop host (DSH 0.2.2-rc.1): 
 ## Rollback
 
 Uninstall from the plugin manager; a CLI uninstall needs a restart. It does not write to the DSH installation directory; a `link:` install only adds one entry to the profile `package.json` and the Cordis composition (which should be restored on uninstall).
+
+## Other DSH projects I work on
+
+Fixing argument-less PTC calls is only one corner of DSH. These are the other plugins I maintain — take what fits.
+
+- **[dsh-better-choice](https://github.com/TLEWA/dsh-better-choice)** — an `ask_user_question` enhancement: right-click an option to add a note, or ask the model a side question with the same context before choosing.
+- **[dsh-fastload](https://github.com/TLEWA/dsh-fastload)** — trims the first history page of long sessions while preserving the tail the user actually sees.
+- **[dsh-if](https://github.com/TLEWA/dsh-if)** — the `/if` command: let the model judge a condition from prior context, then send the instruction below it as a user message only when it holds.
+- **[dsh-opencode-go-router](https://github.com/TLEWA/dsh-opencode-go-router)** — rotates OpenCode Go routing after a context fold or a system-prompt rewrite, so less of the prompt cache is lost.
+- **[dsh-sidebar-organizer](https://github.com/TLEWA/dsh-sidebar-organizer)** — a layout organizer for seven regions: sidebar, sidebar footer, conversation tabs, composer, session header, right panel, and settings navigation all support long-press drag to reorder, and panels can be tucked into "More".
+- **[dsh-sidebar-row-menu](https://github.com/TLEWA/dsh-sidebar-row-menu)** — right-click menus for sidebar rows: workspace rows, session rows and the conversation body each get their own menu, with "Open with" and "More actions" submenus.
+- **[dsh-utf8-output](https://github.com/TLEWA/dsh-utf8-output)** — fixes GBK/CP936/CP932 mojibake from DSH subprocess output on Windows.
 
 ## License
 
