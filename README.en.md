@@ -1,5 +1,7 @@
 # dsh-ptc-noargs
 
+English | [中文](./README.md)
+
 A minimal Cordis plugin that fixes no-argument tool calls in DSH PTC `run_code`.
 
 ## Problem

@@ -1,5 +1,7 @@
 # dsh-ptc-noargs
 
+[English](./README.en.md) | 中文
+
 一个最小 Cordis 插件，修复 DSH PTC `run_code` 中无参工具调用被拒绝的问题。
 
 ## 问题
