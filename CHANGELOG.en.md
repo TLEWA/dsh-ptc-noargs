@@ -2,6 +2,10 @@
 
 > Primary documentation language: Chinese · [中文](./CHANGELOG.md)
 
+## [Unreleased]
+
+- Adopt shared Codex PR review rules and repository-specific review guidance; preserve existing CI, human approval, and release behavior.
+
 ## [0.1.0] — 2026-11-10
 
 Initial release.
