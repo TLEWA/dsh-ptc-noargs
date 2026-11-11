@@ -1,6 +1,6 @@
 {
   "name": "dsh-ptc-noargs",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Fix PTC run_code binding failures for no-argument tool calls: normalize an omitted/undefined first argument to {}. 修复 run_code 中 tools.foo() / tools.foo(undefined) 因缺少 arguments 对象而报 binding arguments must be lossless JSON 的问题。",
   "author": "TLEWA",
   "type": "module",

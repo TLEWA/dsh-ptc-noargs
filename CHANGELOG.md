@@ -2,7 +2,7 @@
 
 > 主文档语言：中文 · [English](./CHANGELOG.en.md)
 
-## [Unreleased]
+## [0.2.0] - 2026-11-11
 
 - 修正与 dsh-utf8-output 的交叉索引文案：该插件修正的是 GBK/CP936/GB18030 子进程输出，不涉及 CP932。
 

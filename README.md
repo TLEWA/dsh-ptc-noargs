@@ -61,7 +61,7 @@ dsh plugin --profile desktop add "link:C:\Users\<you>\.dsh\local-plugins\dsh-ptc
 也可以先在本目录执行 `npm pack`，再用生成的 `.tgz` 安装（这样不会依赖源码目录）：
 
 ```powershell
-dsh plugin --profile desktop add "C:\path\to\dsh-ptc-noargs-0.1.0.tgz"
+dsh plugin --profile desktop add "C:\path\to\dsh-ptc-noargs-0.2.0.tgz"
 ```
 
 > 如果 `dsh` 不在 PATH，改用 DSH 安装目录下的 `resources\runtime\cli\bin\dsh.cmd`。

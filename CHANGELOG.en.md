@@ -2,7 +2,7 @@
 
 > Primary documentation language: Chinese · [中文](./CHANGELOG.md)
 
-## [Unreleased]
+## [0.2.0] - 2026-11-11
 
 - Fix the cross-repo index entry for dsh-utf8-output: it repairs GBK/CP936/GB18030 subprocess output, not CP932.
 
