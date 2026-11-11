@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+- Fix the cross-repo index entry for dsh-utf8-output: it repairs GBK/CP936/GB18030 subprocess output, not CP932.
+
 - Adopt shared Codex PR review rules and repository-specific review guidance; preserve existing CI, human approval, and release behavior.
 
 ## [0.1.0] — 2026-11-10
