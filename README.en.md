@@ -61,7 +61,7 @@ dsh plugin --profile desktop add "link:C:\Users\<you>\.dsh\local-plugins\dsh-ptc
 Alternatively, run `npm pack` in this directory and install the resulting `.tgz` (no dependency on the source directory):
 
 ```powershell
-dsh plugin --profile desktop add "C:\path\to\dsh-ptc-noargs-0.1.0.tgz"
+dsh plugin --profile desktop add "C:\path\to\dsh-ptc-noargs-0.2.0.tgz"
 ```
 
 > If `dsh` is not on PATH, use `resources\runtime\cli\bin\dsh.cmd` under your DSH install directory.
