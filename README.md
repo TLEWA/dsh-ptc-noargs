@@ -111,6 +111,7 @@ node test/prelude.test.mjs
 - **[dsh-sidebar-organizer](https://github.com/TLEWA/dsh-sidebar-organizer)** —— 七区域布局整理器：侧栏、侧栏底部、对话标签、输入框、会话头部、右侧栏、设置导航都能长按拖拽排序，面板可以收进「更多」再拖回来。
 - **[dsh-sidebar-row-menu](https://github.com/TLEWA/dsh-sidebar-row-menu)** —— 侧栏行右键菜单：工作区行、会话行与会话正文各有自己的右键菜单，含「打开方式」「更多操作」二级菜单。
 - **[dsh-utf8-output](https://github.com/TLEWA/dsh-utf8-output)** —— 修复 Windows 下 DSH 子进程 GBK/CP936/GB18030 输出乱码。
+- **[dsh-ps51-guard](https://github.com/TLEWA/dsh-ps51-guard)** —— 通过 `ops_bash` 调用的 Windows PowerShell 5.1 护栏：UTF-16LE 传输保护、兼容改写与执行结果归一化（脚手架阶段）。
 
 ## 许可
 
