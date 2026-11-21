@@ -112,6 +112,7 @@ Fixing argument-less PTC calls is only one corner of DSH. These are the other pl
 - **[dsh-sidebar-row-menu](https://github.com/TLEWA/dsh-sidebar-row-menu)** — right-click menus for sidebar rows: workspace rows, session rows and the conversation body each get their own menu, with "Open with" and "More actions" submenus.
 - **[dsh-utf8-output](https://github.com/TLEWA/dsh-utf8-output)** — fixes GBK/CP936/GB18030 mojibake from DSH subprocess output on Windows.
 - **[dsh-ps51-guard](https://github.com/TLEWA/dsh-ps51-guard)** — a guard for Windows PowerShell 5.1 calls made through `ops_bash`: UTF-16LE transfer protection, compatibility rewrites and result normalization (scaffolding).
+- **[dsh-image-formats](https://github.com/TLEWA/dsh-image-formats)** — AVIF/TIFF/SVG support for `read_image` and the composer: converts to PNG before using the existing attachment path.
 
 ## License
 
