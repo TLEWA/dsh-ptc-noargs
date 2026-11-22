@@ -34,10 +34,10 @@ tools=(()=>{const s=tools,w={__proto__:null};if(s)for(const k in s){const v=s[k]
 **scoped-repl**（DSH 0.2.3-alpha.x 的默认执行模式）：程序在一个常驻上下文里求值，runtime 会在**每次**执行前重新安装一份新的 `tools` 命名空间，而且是不可写属性（`dsh-ptc-runtime-node/src/process.ts:185`）。裸赋值会抛 `Cannot redefine property: tools`，顶层 `const tools = …` 又会和运行时带入的绑定重名。所以这条路径换用：
 
 ```js
-/* dsh-ptc-noargs */ (g=>{try{const s=g.tools;if(!s||s.__ptcNoargs)return;const w={__proto__:null};for(const k in s){const v=s[k];w[k]=typeof v==="function"?(...a)=>{if(a.length===0||a[0]===undefined)a[0]={};return v.apply(s,a)}:v}Object.defineProperty(w,"__ptcNoargs",{value:true});Object.defineProperty(g,"tools",{value:w,configurable:true,enumerable:true})}catch{}})(globalThis);
+/* dsh-ptc-noargs */ (()=>{try{let g;try{g=globalThis}catch{}if(g===null||typeof g!=="object")try{g=__ptcNoargsGlobal}catch{}if(g===null||typeof g!=="object")return;try{Object.defineProperty(g,"__ptcNoargsGlobal",{value:g,configurable:true})}catch{}const s=g.tools;if(!s||s.__ptcNoargs)return;const w={__proto__:null};for(const k in s){const v=s[k];w[k]=typeof v==="function"?(...a)=>{if(a.length===0||a[0]===undefined)a[0]={};return v.apply(s,a)}:v}Object.defineProperty(w,"__ptcNoargs",{value:true});Object.defineProperty(g,"tools",{value:w,configurable:true,enumerable:true})}catch{}})();
 ```
 
-这段只有一个表达式、顶层不声明任何名字（scoped REPL 会把顶层声明带进后续程序），用 `Object.defineProperty` 覆盖全局，并在包装对象上留一个不可枚举的 `__ptcNoargs` 标记做幂等；内部 `try/catch` 保证它不会把程序带崩。它和用户代码同一行，所以**行号不变**。
+这段只有一个表达式、顶层不声明任何名字（scoped REPL 会把顶层声明带进后续程序），用 `Object.defineProperty` 覆盖全局，并在包装对象上留一个不可枚举的 `__ptcNoargs` 标记做幂等；内部 `try/catch` 保证它不会把程序带崩。它和用户代码同一行，所以**行号不变**。任何标识符都在 `try` 之内求值：用户程序自己声明 `globalThis`（或 `Object`）只会让这一段静默跳过，不会在首语句之前抛错；此时它改从自注册的 `__ptcNoargsGlobal` 句柄取回全局对象，归一化照常生效。
 
 如果 runtime 还暴露了 `registerEnvironmentInitializer`，插件会把同一段文本再注册为环境初始化器，用来覆盖"环境创建后的第一个程序"（这种情况下 runtime 不会再重装命名空间）。这一步是尽力而为：注册槽是单例，重复或过早注册只 `warn`，不影响每个程序的注入。
 
@@ -104,7 +104,7 @@ dsh plugin --profile desktop remove dsh-ptc-noargs
 node test/prelude.test.mjs
 ```
 
-27 项单元测试。function-body 路径覆盖：省略首参、显式 `undefined`、显式参数、`null`、非函数绑定、`__proto__` 绑定、幂等、`Object` 遮蔽、严格模式、`run_code` 包装、非 TS runtime 跳过、runtime 查找异常。scoped-repl 路径用 `node:vm` 复刻 alpha 子进程的求值环境（常驻上下文、每次执行前重装 `tools` 命名空间、严格模式包装），覆盖：每轮重新归一化、首参规则与 function-body 一致、行号不变、同一程序内幂等、无 `tools` 时安全返回、`tools` 仍不可写、prelude 结构（单表达式、无顶层声明、不含保留前缀）、`run_code` 包装、初始化器只注册一次、初始化器覆盖首个程序、后续程序仍需注入、function-body 从不碰初始化器槽、旧 runtime 无该接缝时保持 no-op、注册失败只 warn、已带标记的代码不重复注入。
+29 项单元测试。function-body 路径覆盖：省略首参、显式 `undefined`、显式参数、`null`、非函数绑定、`__proto__` 绑定、幂等、`Object` 遮蔽、严格模式、`run_code` 包装、非 TS runtime 跳过、runtime 查找异常。scoped-repl 路径用 `node:vm` 复刻 alpha 子进程的求值环境（常驻上下文、每次执行前重装 `tools` 命名空间、严格模式包装），覆盖：每轮重新归一化、首参规则与 function-body 一致、行号不变、同一程序内幂等、无 `tools` 时安全返回、`tools` 仍不可写、prelude 结构（单表达式、无顶层声明、不含保留前缀）、`run_code` 包装、初始化器只注册一次、初始化器覆盖首个程序、后续程序仍需注入、function-body 从不碰初始化器槽、旧 runtime 无该接缝时保持 no-op、注册失败只 warn、已带标记的代码不重复注入。
 
 function-body 路径在真实 PTC worker 中已验证：基线 `tools.job_list()` 精确报 `binding arguments must be lossless JSON`；注入 prelude 后 `job_list()` 与 `job_list(undefined)` 均返回 `[]`。
 

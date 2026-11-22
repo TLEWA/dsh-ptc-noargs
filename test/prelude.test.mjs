@@ -259,9 +259,35 @@ test('scoped REPL prelude keeps tools non-writable, like the host', async () => 
 	assert.match(String(error.message), /tools/);
 });
 
+test('scoped REPL prelude survives a program that shadows globalThis', async () => {
+	const repl = scopedRepl();
+	// The host runs the environment initializer before the first program.
+	await repl.evaluate(SCOPED_REPL_PRELUDE).run();
+	const calls = [];
+	repl.install(namespace({ ping: async (args) => { calls.push(args); return args; } }));
+	const shadowed = await repl
+		.evaluate(injectScopedReplPrelude('const globalThis = 1;\nreturn await tools.ping();'))
+		.run();
+	// The declaration is carried, so the prelude reads the handle it registered.
+	looseEqual(calls, [{}]);
+	looseEqual(shadowed, {});
+	assert.equal(repl.sandbox.__ptcNoargsGlobal, repl.sandbox.global);
+});
+
+test('a shadowed globalThis no longer fails the program before its first statement', async () => {
+	const repl = scopedRepl();
+	repl.install(namespace({ ping: async () => 'called' }));
+	// No initializer ran first, so the handle is missing: the prelude must degrade,
+	// not throw a ReferenceError out of the program's first statement.
+	const result = await repl
+		.evaluate(injectScopedReplPrelude('const globalThis = 1;\nreturn globalThis;'))
+		.run();
+	assert.equal(result, 1);
+});
+
 test('scoped REPL prelude is a single declaration-free statement', () => {
 	assert.ok(SCOPED_REPL_PRELUDE.startsWith(PRELUDE_MARKER));
-	assert.match(SCOPED_REPL_PRELUDE, /^\/\* dsh-ptc-noargs \*\/ \(g=>\{[\s\S]*\}\)\(globalThis\);$/);
+	assert.match(SCOPED_REPL_PRELUDE, /^\/\* dsh-ptc-noargs \*\/ \(\(\)=>\{[\s\S]*\}\)\(\);$/);
 	assert.ok(!SCOPED_REPL_PRELUDE.includes('__$binding_'));
 	assert.ok(!SCOPED_REPL_PRELUDE.includes('\n'));
 	assert.equal(injectScopedReplPrelude('return 1;'), SCOPED_REPL_PRELUDE + 'return 1;');
