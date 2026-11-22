@@ -23,24 +23,38 @@ The PTC worker snapshots binding arguments as lossless JSON before handing the c
 
 ## How it works
 
-The plugin listens on the shared `tools/execute` waterfall. When the tool is `run_code`, the program is a TypeScript function body, and `arguments.code` is a string, it prefixes the execution copy of the code with a one-line prelude:
+The plugin listens on the shared `tools/execute` waterfall. When the tool is `run_code`, the program is TypeScript, and `arguments.code` is a string, it replaces `code` in its copy of the execution arguments, picking one of two paths from the `programFormat` the runtime reports - capability detection only, never a version string.
+
+**function-body** (DSH 0.2.2-rc.x, and 0.2.3-alpha.x with `executionMode` switched back to `per-call`): the gate is still the exact `programFormat === 'function-body'` check, and the prelude is the original one:
 
 ```js
 tools=(()=>{const s=tools,w={__proto__:null};if(s)for(const k in s){const v=s[k];w[k]=typeof v==="function"?(...a)=>{if(a.length===0||a[0]===undefined)a[0]={};return v(...a)}:v}return w})();
 ```
 
-The prelude clones the `tools` namespace and wraps each function so that an omitted or explicitly `undefined` first argument becomes `{}`; all other arguments pass through unchanged. User code still refers to `tools` by the same name.
+**scoped-repl** (the DSH 0.2.3-alpha.x default): the program runs in a retained context, and the runtime reinstalls a fresh `tools` namespace before **every** program as a non-writable property (`dsh-ptc-runtime-node/src/process.ts:185`). A bare assignment throws `Cannot redefine property: tools`, and a top-level `const tools = ...` collides with the binding the runtime carries in. This path therefore uses:
+
+```js
+/* dsh-ptc-noargs */ (g=>{try{const s=g.tools;if(!s||s.__ptcNoargs)return;const w={__proto__:null};for(const k in s){const v=s[k];w[k]=typeof v==="function"?(...a)=>{if(a.length===0||a[0]===undefined)a[0]={};return v.apply(s,a)}:v}Object.defineProperty(w,"__ptcNoargs",{value:true});Object.defineProperty(g,"tools",{value:w,configurable:true,enumerable:true})}catch{}})(globalThis);
+```
+
+That prelude is a single expression with no top-level declaration (the scoped REPL carries top-level declarations into later programs), it redefines the global with `Object.defineProperty`, and it leaves a non-enumerable `__ptcNoargs` marker on the wrapper so re-running it is a no-op; the inner `try/catch` keeps it from breaking the program. It sits on the user's first line, so **line numbers are preserved**.
+
+When the runtime also exposes `registerEnvironmentInitializer`, the plugin registers the same text as the environment initializer, which covers the first program of a fresh environment (that one run does not see a namespace reinstall). Registration is best-effort: the slot is a runtime singleton, so a duplicate or premature registration only `warn`s and never affects the per-program prelude.
+
+Both paths clone the `tools` namespace and wrap each function so that an omitted or explicitly `undefined` first argument becomes `{}`; all other arguments pass through unchanged. User code still refers to `tools` by the same name.
 
 The plugin does not modify the PTC runtime or tool definitions, and it does not alter what the model sees: logs and UI keep the original `code`; only the executed copy contains the prelude.
 
 ## Scope and limitations
 
-- TypeScript function-body programs only (the PTC default). Python, REPL, and script modes are skipped.
-- The injected prelude is one line, so user-code line numbers shift by one; stack traces shift too.
+- TypeScript programs only, in both formats (function-body and scoped-repl); Python and script modes stay a no-op.
+- In function-body mode the prelude occupies a line, so user-code line numbers shift by one, and so do stack frames. In scoped-repl mode the prelude shares the user's first line, so line numbers are preserved.
+- In scoped-repl mode the prelude has to be injected once per program: the environment initializer only covers that environment's first program, because the runtime reinstalls the namespace afterwards.
+- Registering the environment initializer is best-effort. The plugin does not dispose the registration on unload - the disposer returned by `registerEnvironmentInitializer` drains the current environment and aborts a running program.
 - It relies on `tools/execute` receiving an execution object whose `arguments` field can be replaced. That is how the shared pipeline behaves today, but it is not a documented stable API; if upstream tightens it, the plugin skips safely (`warn` only, never blocks the call).
 - `null` is not rewritten; only omission and explicit `undefined` are normalized.
 - It does not affect ordinary tool calls through the native executor; only PTC bindings inside `run_code`.
-- Verified on DSH 0.2.2-rc.1; peer dependency is `@deepseek-ai/cordis >=4.0.0-rc <5`.
+- Compatible with DSH 0.2.2-rc.x and 0.2.3-alpha.x by capability detection (`programFormat` plus `registerEnvironmentInitializer`), not by version string; peer dependency is `@deepseek-ai/cordis >=4.0.0-rc <5`.
 
 ## Install
 
@@ -90,9 +104,11 @@ Uninstalling from the plugin manager takes effect immediately; a CLI uninstall n
 node test/prelude.test.mjs
 ```
 
-12 unit tests cover: omitted first argument, explicit `undefined`, explicit arguments, `null`, non-function bindings, a `__proto__` binding, idempotence, `Object` shadowing, strict mode, `run_code` wrapping, non-TypeScript runtimes, and a throwing runtime lookup.
+27 unit tests. The function-body path covers: omitted first argument, explicit `undefined`, explicit arguments, `null`, non-function bindings, a `__proto__` binding, idempotence, `Object` shadowing, strict mode, `run_code` wrapping, non-TypeScript runtimes, and a throwing runtime lookup. The scoped-repl path runs against a `node:vm` replica of the alpha child environment (retained context, a fresh `tools` namespace before every run, strict-mode wrapper) and covers: re-normalization on every run, the same first-argument rules as function-body, preserved line numbers, in-program idempotence, a safe return when no `tools` exists, `tools` staying non-writable, prelude shape (one expression, no top-level declaration, none of the reserved prefix), `run_code` wrapping, a single initializer registration, the initializer covering the first program, later programs still needing the prelude, function-body never touching the initializer slot, no-op on an older runtime without the seam, a failing registration warning only, and skipping a program that already carries the marker.
 
-In a real PTC worker, the baseline `tools.job_list()` raised exactly `binding arguments must be lossless JSON`; with the prelude, both `job_list()` and `job_list(undefined)` returned `[]`.
+On the function-body path, a real PTC worker was verified: the baseline `tools.job_list()` raised exactly `binding arguments must be lossless JSON`, and with the prelude both `job_list()` and `job_list(undefined)` returned `[]`.
+
+The scoped-repl path currently rests on the source audit plus the `node:vm` replica above; it has not been run end-to-end on a real 0.2.3-alpha.x host yet, and that check is planned before the alpha release.
 
 A live end-to-end comparison was also run in the desktop host (DSH 0.2.2-rc.1): after hot-loading via **Plugins → Add plugin → Enable now**, `await tools.job_list()`, `await tools.job_list(undefined)`, `await tools.get_goal()`, and `await tools.list_agents()` all returned normally while the manager showed **Running**; after uninstalling from the plugin manager, the same `await tools.job_list()` immediately raised `binding arguments must be lossless JSON` again. The host was not restarted between the two halves.
 
