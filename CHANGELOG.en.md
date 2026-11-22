@@ -2,7 +2,7 @@
 
 > Primary documentation language: Chinese · [中文](./CHANGELOG.md)
 
-## [Unreleased]
+## [0.2.1] - 2026-11-22
 
 - Support the scoped REPL default of DSH 0.2.3-alpha.x: a dedicated scoped-repl prelude (one expression, no top-level declaration, `Object.defineProperty` over `tools`, a non-enumerable marker for idempotence, and an inner `try/catch` that never breaks the program), and - when the runtime exposes `registerEnvironmentInitializer` - the same text registered as the environment initializer (best-effort; a failure only `warn`s). No identifier is resolved outside `try`/`catch`, so a program that declares its own `globalThis` no longer throws before its first statement, and the prelude keeps normalizing through a self-registered `__ptcNoargsGlobal` handle.
 - Behavior change: in scoped-repl mode the prelude shares the user's first line, so user-code line numbers no longer shift. The function-body path keeps its previous one-line injection, which still shifts line numbers by one.

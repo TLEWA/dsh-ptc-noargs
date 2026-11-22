@@ -2,7 +2,7 @@
 
 > 主文档语言：中文 · [English](./CHANGELOG.en.md)
 
-## [Unreleased]
+## [0.2.1] - 2026-11-22
 
 - 适配 DSH 0.2.3-alpha.x 的 scoped REPL 默认执行模式：新增 scoped-repl 专用 prelude（单表达式、无顶层声明、用 `Object.defineProperty` 覆盖 `tools`、不可枚举标记保证幂等、内部 `try/catch` 不让程序崩），并在 runtime 暴露 `registerEnvironmentInitializer` 时把同一段文本注册为环境初始化器（尽力而为，失败只 `warn`）；prelude 不再把任何标识符放在 `try` 之外，用户程序自己声明 `globalThis` 时不会在首语句前抛错，并可由自注册的 `__ptcNoargsGlobal` 句柄继续归一化。
 - 行为变更：scoped-repl 模式下 prelude 与用户首行同行，用户代码行号不再偏移；此前只有 function-body 一行注入，会让行号后移 1 行，该行为保留不变。
