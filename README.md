@@ -23,24 +23,38 @@ binding arguments must be lossless JSON
 
 ## 原理
 
-插件监听共享工具流水线的 `tools/execute` waterfall。仅当工具是 `run_code`、程序是 TypeScript function-body、且参数含 `code` 时，它把执行视图的 `code` 前面加一行 prelude：
+插件监听共享工具流水线的 `tools/execute` waterfall。仅当工具是 `run_code`、程序是 TypeScript、且参数含 `code` 时，它替换执行视图里那份参数浅拷贝中的 `code`，并按 runtime 自报的 `programFormat` 走两条路径——只看能力，不读版本号。
+
+**function-body**（DSH 0.2.2-rc.x，以及 0.2.3-alpha.x 下把 `executionMode` 改回 `per-call` 的配置）：判定条件仍是精确的 `programFormat === 'function-body'`，注入的仍是原来那一行：
 
 ```js
 tools=(()=>{const s=tools,w={__proto__:null};if(s)for(const k in s){const v=s[k];w[k]=typeof v==="function"?(...a)=>{if(a.length===0||a[0]===undefined)a[0]={};return v(...a)}:v}return w})();
 ```
 
-这段代码克隆 `tools` 命名空间，把每个函数包装成：首参省略或为 `undefined` 时改为 `{}`，其余参数原样传递。用户代码看到的仍是原来的 `tools` 名字，但每次调用都会经过归一化。
+**scoped-repl**（DSH 0.2.3-alpha.x 的默认执行模式）：程序在一个常驻上下文里求值，runtime 会在**每次**执行前重新安装一份新的 `tools` 命名空间，而且是不可写属性（`dsh-ptc-runtime-node/src/process.ts:185`）。裸赋值会抛 `Cannot redefine property: tools`，顶层 `const tools = …` 又会和运行时带入的绑定重名。所以这条路径换用：
+
+```js
+/* dsh-ptc-noargs */ (()=>{try{let g;try{g=globalThis}catch{}if(g===null||typeof g!=="object")try{g=__ptcNoargsGlobal}catch{}if(g===null||typeof g!=="object")return;try{Object.defineProperty(g,"__ptcNoargsGlobal",{value:g,configurable:true})}catch{}const s=g.tools;if(!s||s.__ptcNoargs)return;const w={__proto__:null};for(const k in s){const v=s[k];w[k]=typeof v==="function"?(...a)=>{if(a.length===0||a[0]===undefined)a[0]={};return v.apply(s,a)}:v}Object.defineProperty(w,"__ptcNoargs",{value:true});Object.defineProperty(g,"tools",{value:w,configurable:true,enumerable:true})}catch{}})();
+```
+
+这段只有一个表达式、顶层不声明任何名字（scoped REPL 会把顶层声明带进后续程序），用 `Object.defineProperty` 覆盖全局，并在包装对象上留一个不可枚举的 `__ptcNoargs` 标记做幂等；内部 `try/catch` 保证它不会把程序带崩。它和用户代码同一行，所以**行号不变**。任何标识符都在 `try` 之内求值：用户程序自己声明 `globalThis`（或 `Object`）只会让这一段静默跳过，不会在首语句之前抛错；此时它改从自注册的 `__ptcNoargsGlobal` 句柄取回全局对象，归一化照常生效。
+
+如果 runtime 还暴露了 `registerEnvironmentInitializer`，插件会把同一段文本再注册为环境初始化器，用来覆盖"环境创建后的第一个程序"（这种情况下 runtime 不会再重装命名空间）。这一步是尽力而为：注册槽是单例，重复或过早注册只 `warn`，不影响每个程序的注入。
+
+两条路径都只克隆 `tools` 命名空间，把每个函数包装成：首参省略或为 `undefined` 时改为 `{}`，其余参数原样传递。用户代码看到的仍是原来的 `tools` 名字，但每次调用都会经过归一化。
 
 插件不修改 PTC runtime、不修改工具定义，也不修改模型看到的原始参数：日志和 UI 仍记录原始 `code`；只有实际执行的副本带 prelude。
 
 ## 支持范围与限制
 
-- 仅支持 TypeScript function-body（PTC 默认模式）。Python、REPL、script 模式会跳过。
-- 注入的 prelude 占一行，用户代码行号整体后移 1 行；报错栈里的行号也会偏移。
+- 仅处理 TypeScript 程序（function-body 与 scoped-repl 两种格式）；Python 与 script 模式保持 no-op。
+- function-body 模式的 prelude 占一行，用户代码行号整体后移 1 行，报错栈行号也跟着偏移；scoped-repl 模式的 prelude 与用户首行同行，行号不变。
+- scoped-repl 模式下每个程序都要重新注入一次：环境初始化器只覆盖该环境的第一程序，之后 runtime 会重装命名空间。
+- 注册环境初始化器是尽力而为。插件不会在卸载时撤销注册——`registerEnvironmentInitializer` 返回的 disposer 会 drain 当前环境并中断正在运行的程序。
 - 依赖 `tools/execute` 收到可替换 `arguments` 字段的 execution 对象。这是当前共享流水线的行为，但并非 README 承诺的稳定 API；上游若收紧，插件会安全跳过（只 `warn`，不阻断调用）。
 - `null` 不会被改写；只归一化“省略”和“显式 `undefined`”。
 - 不适用于原生工具执行器下的普通工具调用；它只处理 `run_code` 的 PTC 绑定。
-- 已在 DSH 0.2.2-rc.1 验证；peer 为 `@deepseek-ai/cordis >=4.0.0-rc <5`。
+- 兼容 DSH 0.2.2-rc.x 与 0.2.3-alpha.x：按 runtime 自报的 `programFormat` 与 `registerEnvironmentInitializer` 能力分支，不读版本号；peer 为 `@deepseek-ai/cordis >=4.0.0-rc <5`。
 
 ## 安装
 
@@ -90,9 +104,11 @@ dsh plugin --profile desktop remove dsh-ptc-noargs
 node test/prelude.test.mjs
 ```
 
-12 项单元测试覆盖：省略首参、显式 `undefined`、显式参数、`null`、非函数绑定、`__proto__` 绑定、幂等、`Object` 遮蔽、严格模式、`run_code` 包装、非 TS runtime 跳过、runtime 查找异常。
+29 项单元测试。function-body 路径覆盖：省略首参、显式 `undefined`、显式参数、`null`、非函数绑定、`__proto__` 绑定、幂等、`Object` 遮蔽、严格模式、`run_code` 包装、非 TS runtime 跳过、runtime 查找异常。scoped-repl 路径用 `node:vm` 复刻 alpha 子进程的求值环境（常驻上下文、每次执行前重装 `tools` 命名空间、严格模式包装），覆盖：每轮重新归一化、首参规则与 function-body 一致、行号不变、同一程序内幂等、无 `tools` 时安全返回、`tools` 仍不可写、prelude 结构（单表达式、无顶层声明、不含保留前缀）、`run_code` 包装、初始化器只注册一次、初始化器覆盖首个程序、后续程序仍需注入、function-body 从不碰初始化器槽、旧 runtime 无该接缝时保持 no-op、注册失败只 warn、已带标记的代码不重复注入。
 
-真实 PTC worker 中已验证：基线 `tools.job_list()` 精确报 `binding arguments must be lossless JSON`；注入 prelude 后 `job_list()` 与 `job_list(undefined)` 均返回 `[]`。
+function-body 路径在真实 PTC worker 中已验证：基线 `tools.job_list()` 精确报 `binding arguments must be lossless JSON`；注入 prelude 后 `job_list()` 与 `job_list(undefined)` 均返回 `[]`。
+
+scoped-repl 路径目前是源码审计加上述 `node:vm` 复刻验证，尚未在真实 0.2.3-alpha.x 宿主上做端到端对照，alpha 正式发布前会补一次。
 
 桌面端真实宿主（DSH 0.2.2-rc.1）中也完成了端到端对照：通过插件页“添加插件 → 立即启用”热加载后，`await tools.job_list()`、`await tools.job_list(undefined)`、`await tools.get_goal()`、`await tools.list_agents()` 均正常返回，管理器显示“运行中”；从插件管理器卸载后，同一 `await tools.job_list()` 立即恢复报 `binding arguments must be lossless JSON`。整个正负对照未重启宿主。
 

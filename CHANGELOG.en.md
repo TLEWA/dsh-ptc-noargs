@@ -2,6 +2,13 @@
 
 > Primary documentation language: Chinese · [中文](./CHANGELOG.md)
 
+## [Unreleased]
+
+- Support the scoped REPL default of DSH 0.2.3-alpha.x: a dedicated scoped-repl prelude (one expression, no top-level declaration, `Object.defineProperty` over `tools`, a non-enumerable marker for idempotence, and an inner `try/catch` that never breaks the program), and - when the runtime exposes `registerEnvironmentInitializer` - the same text registered as the environment initializer (best-effort; a failure only `warn`s). No identifier is resolved outside `try`/`catch`, so a program that declares its own `globalThis` no longer throws before its first statement, and the prelude keeps normalizing through a self-registered `__ptcNoargsGlobal` handle.
+- Behavior change: in scoped-repl mode the prelude shares the user's first line, so user-code line numbers no longer shift. The function-body path keeps its previous one-line injection, which still shifts line numbers by one.
+- The 0.2.2-rc.x function-body path keeps its exact `programFormat === 'function-body'` gate; the branch is capability detection from what the runtime reports, never a version string, and both paths have unit tests.
+- Unit tests go from 12 to 29, adding a `node:vm` replica of the alpha evaluation environment (retained context plus a fresh `tools` namespace before every run) that pins the initializer covering only the first program, plus both shadowing cases (with and without the handle the initializer leaves behind).
+
 ## [0.2.0] - 2026-11-11
 
 - Fix the cross-repo index entry for dsh-utf8-output: it repairs GBK/CP936/GB18030 subprocess output, not CP932.
